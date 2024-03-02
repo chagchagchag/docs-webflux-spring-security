@@ -1,11 +1,8 @@
 {
   "index": "Introduction",
-  "another": "Another Page",
-  "advanced": "Advanced (A Folder)",
-  "about": {
-    "title": "About",
-    "type": "page"
-  },
+  "jwt-basic": "JWT 개념",
+  "servlet-vs-netty-nio": "Servlet 과 Netty 차이점",
+  "authentication-manager-way": "AuthenticationManager 방식의 인증",
   "contact": {
     "title": "Contact ↗",
     "type": "page",
