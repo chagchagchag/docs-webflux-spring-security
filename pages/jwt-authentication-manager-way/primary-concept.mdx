@@ -1,0 +1,250 @@
+## ReactiveAuthenticationManager 기반의 인증
+
+스프링 시큐리티 관련 개념을 문서를 정리할 때마다 항상 고통스럽고 설명이 쉽지 않았었는데요. 최대한 쉽게 융통성 있게 설명해보겠습니다.<br/>
+
+이번 글에서는 SecurityConfig 를 필터체인을 Bean 으로 등록하는 방식을 설명합니다.  WebSecurityConfgiurerAdapter 를 상속해서 configure 메서드를 오버라이딩 하던 2.7.x 버전대의 시큐리티 방식은 이 글에서 다루지 않기로 했습니다. 저 역시도 이 방식을 본지가 꽤 오래되어서 기억이 안나기도 하고 지금와서 다시 예제를 하나 더 추가하기에는 시간도 부족해서 다루지 않기로 했습니다.<br/>
+
+<br/>
+
+
+
+## 의존성
+
+jwt 인증을 사용할 것이기에 jwt 인증과 security 의존성을 추가했습니다.
+
+```groovy
+dependencies{
+    // ...
+    
+    // security
+	implementation("org.springframework.boot:spring-boot-starter-security")
+
+	// jwt
+	implementation("io.jsonwebtoken:jjwt-api:0.11.2")
+	implementation("io.jsonwebtoken:jjwt-impl:0.11.2")
+	implementation("io.jsonwebtoken:jjwt-jackson:0.11.2")
+    
+    // ...
+}
+```
+
+<br/>
+
+
+
+## SecurityConfig.java
+
+먼저 아래와 같은 SecurityConfig 클래스를 작성합니다. SecurityConfig 클래스 코드 먼저 보는 이유는 어떤 기능을 추가할지 명확하게 보여주기 때문에 SecurityConfig 코드를 먼저 추가했습니다.
+
+```java
+package io.chagchagchag.example.foobar.user.config.security;
+
+// ...
+
+@RequiredArgsConstructor
+@EnableWebFluxSecurity
+@Configuration
+public class SecurityConfig {
+
+  @Bean
+  public SecurityWebFilterChain filterChain(
+      ServerHttpSecurity httpSecurity,
+      JwtServerAuthenticationConverter converter, // (1)
+      JwtAuthenticationManager authenticationManager // (1)
+  ){
+    // (1)
+    var authenticationWebFilter = new AuthenticationWebFilter(authenticationManager);
+    authenticationWebFilter.setServerAuthenticationConverter(converter); // (1)
+
+    // (2)
+    return httpSecurity
+        // (3)
+        .exceptionHandling(exceptionHandlingSpec ->
+            exceptionHandlingSpec.authenticationEntryPoint(
+                (exchange, ex) -> Mono.fromRunnable(() -> {
+                  exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+                  exchange.getResponse().getHeaders().set(HttpHeaders.WWW_AUTHENTICATE, "Bearer");
+                })
+            )
+        )
+        .csrf(csrfSpec -> csrfSpec.disable()) // (4)
+        .formLogin(formLoginSpec -> formLoginSpec.disable()) // (4)
+        .httpBasic(httpBasicSpec -> httpBasicSpec.disable()) // (4)
+        // (5)
+        .authorizeExchange(authorizeExchangeSpec ->
+            authorizeExchangeSpec
+                .pathMatchers("/", "/welcome", "/img/**", "/api/users/signup", "/healthcheck/**")
+                .permitAll()
+                .pathMatchers("/swagger-ui.html", "/webjars/**")
+                .permitAll()
+                .pathMatchers("/healthcheck/ready")
+                .permitAll()
+                .pathMatchers("/api/users/login", "/api/users/signup")
+                .permitAll()
+                .pathMatchers("/logout", "/api/users/profile/**")
+                .hasAnyAuthority("ROLE_USER", "ROLE_MANAGER", "ROLE_ADMIN")
+        )
+        // (6)
+        .headers(headerSpec -> headerSpec.frameOptions(frameOptionsSpec -> frameOptionsSpec.disable()))
+        // (7)
+        .addFilterAt(authenticationWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
+        .build();
+  }
+}
+```
+
+<br/>
+
+
+
+(1)<br/>
+
+`AuthenticationWebFilter` 객체를 생성합니다. 그리고 이 `AuthenticationWebFilter` 객체에는 직접 커스텀하게 구현해둔 `JwtAuthenticationManager` 객체를 바인딩해줍니다. 위의 코드에서는 `AuthenticationWebFilter` 생성자에 `JwtAuthenticationManager` 객체를 바인딩해줬습니다.<br/>
+
+직접 작성한 클래스인 `JwtAuthenticationManager` 클래스의 내용은 이글의 하단부에 설명 예정입니다.<br/>
+
+<br/>
+
+
+
+(2) `HttpSecurity httpSecurity`
+
+`HttpSecurity httpSecurity`  빈을 주입받은 후 `httpSecurity`객체의 `build()` 함수를 이용해서 `SecurityWebFilterChain`을 빈으로 등록합니다.
+
+<br/>
+
+
+
+(3) 
+
+```java
+httpSecurity
+// (3)
+.exceptionHandling(exceptionHandlingSpec ->
+    exceptionHandlingSpec.authenticationEntryPoint(
+        (exchange, ex) -> Mono.fromRunnable(() -> {
+          exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED); // (i)
+          exchange.getResponse().getHeaders().set(HttpHeaders.WWW_AUTHENTICATE, "Bearer"); // (ii)
+        })
+    )
+)
+```
+
+(i)
+
+- 인증이 실패했을 때 StatusCode 를 어떤 것으로 내려줄지를 정의합니다. 
+
+(ii)
+
+- Response 헤더에는 `{ WWW-Authenticate : Bearer }`을 지정해주었습니다.
+
+ <br/>
+
+
+
+ (4)
+
+```java
+httpSecurity
+// ...
+// (3)
+.csrf(csrfSpec -> csrfSpec.disable()) // (i)
+.formLogin(formLoginSpec -> formLoginSpec.disable()) // (ii)
+.httpBasic(httpBasicSpec -> httpBasicSpec.disable()) // (iii)
+// ...
+```
+
+(i) : csrf를 비활성화합니다. <br/>
+
+(ii) : formLogin 을 비활성화 합니다.<br/>
+
+(iii) : httpBasic 역시 비활성화 합니다.<br/>
+
+<br/>
+
+
+
+(5)
+
+```java
+http
+// ...
+// (5)
+.authorizeExchange(authorizeExchangeSpec ->
+    authorizeExchangeSpec
+        // (i)
+        .pathMatchers("/", "/welcome", "/img/**", "/api/users/signup", "/healthcheck/**")
+        .permitAll()
+        // (ii)
+        .pathMatchers("/swagger-ui.html", "/webjars/**")
+        .permitAll()
+        // (iii)
+        .pathMatchers("/healthcheck/ready")
+        .permitAll()
+        // (iv)
+        .pathMatchers("/api/users/login", "/api/users/signup")
+        .permitAll()
+        // (v)
+        .pathMatchers("/logout", "/api/users/profile/**")
+        .hasAnyAuthority("ROLE_USER", "ROLE_MANAGER", "ROLE_ADMIN")
+)
+```
+
+(i), (ii), (iii), (iv)
+
+- `"/", "/welcome", "/img/**", "/api/users/signup", "/healthcheck/**"` 에 대해서는 permitAll 해줍니다.
+
+- `"/swagger-ui.html", "/webjars/**"` 에 대해서 permitAll 해줍니다.
+- `"/healthcheck/ready"` 에 대해서도 permitAll 해줍니다.
+- `"/api/users/login", "/api/users/signup"` 에 대해서도 역시 permitAll 해줍니다.
+
+(v)
+
+- `"/logout", "/api/users/profile/**"` 에 대해서는 `"ROLE_USER", "ROLE_MANAGER", "ROLE_ADMIN"` 의 권한에 대해서만 허용합니다.
+
+<br/>
+
+
+
+(6)<br/>
+
+`X-Frame-Options` 헤더를 적용합니다. `X-Frame-Options`는 웹 페이지를 `<frame>`, `<iframe>`, `<embed>`, `<object>`와 같은 태그를 사용하여 다른 웹 사이트에 삽입되는 것을 방지하는 데 사용합니다. 궁금하시다면 Chat GPT에게 `Spring security 에서 headerSpec.frameOptions 는 무슨 기능을 해?` 라고 질문해보시기 바랍니다.
+
+```java
+http
+// ...
+// (6)
+.headers(headerSpec -> headerSpec.frameOptions(frameOptionsSpec -> frameOptionsSpec.disable()))
+// ...
+```
+
+<br/>
+
+
+
+(7)<br/>
+
+위에서 생성해둔 authenticationWebFilter 를 httpSecurity 객체에 추가해 준 후 `HttpSecurity` 의 build() 메서드를 통해 `SecurityWebFilterChain` 객체를 생성합니다.<br/>
+
+```java
+http
+// ...
+// (7)
+.addFilterAt(authenticationWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
+.build();
+```
+
+<br/>
+
+
+
+## JwtAuthenticationManager
+
+
+
+
+
+
+
+## JwtServerAuthenticationConverter
+
