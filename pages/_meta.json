@@ -1,8 +1,9 @@
 {
   "index": "Introduction",
   "jwt-basic": "JWT 개념",
-  "servlet-vs-netty-nio": "Servlet 과 Netty 차이점",
-  "authentication-manager-way": "AuthenticationManager 방식의 인증",
+  "jwt-authentication-manager-way": "AuthenticationManager 방식의 JWT  인증",
+  "oauth2": "OAuth2",
+  "servlet-security-auth": "servlet 기반의 시큐리티 JWT 인증",
   "contact": {
     "title": "Contact ↗",
     "type": "page",
