@@ -1,4 +1,4 @@
 {
-    "primary-concept": "핵심 아이디어",
-    "example" : "예제"
+    "jwt-authentication-example": "JWT 인증 예제",
+    "security-auth-communication" : "시큐리티 인증 클래스들의 상호작용"
 }
