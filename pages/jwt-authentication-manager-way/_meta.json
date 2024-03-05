@@ -1,4 +1,4 @@
 {
-    "jwt-authentication-example": "JWT 인증 예제",
-    "security-auth-communication" : "시큐리티 인증 클래스들의 상호작용"
+    "example-using-reactive-authentication-manager": "ReactiveAuthenticationManager 기반의 인증",
+    "security-auth-interaction" : "시큐리티 인증 클래스들의 상호작용"
 }
