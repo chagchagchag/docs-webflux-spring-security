@@ -165,19 +165,95 @@ ReactiveAuthenticationManagerResolver<ServerWebExchange> resolver() {
 
 제가 작성한 `foobar-user` 에서는 ReactiveAuthenticationManagerResolver 까지 사용하지는 않았고 1개의 ReactiveAuthenticationManager를 Filter 에 등록해서 사용하는 방식으로 아래와 같이 사용했습니다.
 
+```java
+@RequiredArgsConstructor
+@EnableWebFluxSecurity
+@EnableReactiveMethodSecurity
+@Configuration
+public class SecurityConfig {
+
+  @Bean
+  public SecurityWebFilterChain filterChain(
+      ServerHttpSecurity httpSecurity,
+      JwtServerAuthenticationConverter converter,
+      JwtAuthenticationManager authenticationManager
+  ){
+    // (1)
+    var authenticationWebFilter = new AuthenticationWebFilter(authenticationManager);
+    authenticationWebFilter.setServerAuthenticationConverter(converter);
+
+    return httpSecurity
+        // ...
+        .csrf(csrfSpec -> csrfSpec.disable())
+        .formLogin(formLoginSpec -> formLoginSpec.disable())
+        .httpBasic(httpBasicSpec -> httpBasicSpec.disable())
+        // ...
+        .addFilterAt(authenticationWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
+        .build();
+  }
+}
+```
 
 
 
+(1)
+
+- AuthenticationWebFilter 객체 생성시에 JwtAuthenticationManager 를 전달해줍니다. 
+- JwtAuthenticationManager 의 내용은 아래에 정리해두었습니다.
+
+<br/>
 
 
 
+아래는 JwtAuthenticationManager 클래스의 내용입니다. 이 코드에 대한 자세한 설명은 [AuthenticationManager방식의 JWT 인증 # JwtAuthenticationManager 문서](https://chagchagchag.github.io/docs-webflux-spring-security/jwt-authentication-manager-way/example-using-reactive-authentication-manager/#jwtauthenticationmanager) 에 정리해두었습니다.
 
+```java
+package io.chagchagchag.example.foobar.user.config.security;
 
+// ...
 
+@RequiredArgsConstructor
+@Component
+public class JwtAuthenticationManager implements ReactiveAuthenticationManager {
+  private final JwtSupport jwtSupport;
+  private final CustomUserDetailsService userDetailsService;
 
+  @Override
+  public Mono<Authentication> authenticate(Authentication authentication) {
+    return Mono.justOrEmpty(authentication)
+        .filter(auth -> auth instanceof BearerToken)
+        .cast(BearerToken.class)
+        .map(bearerToken -> degenerateToken(bearerToken))
+        .flatMap(jwtDto -> validateJwt(jwtDto))
+        .flatMap(jwtDto -> findUserById(jwtDto.id()))
+        .onErrorMap(throwable -> new IllegalArgumentException("INVALID JWT"));
+  }
 
+  public JwtDto degenerateToken(BearerToken token){
+    return jwtSupport.degenerateToken(SecurityProperties.key, token.getJwt());
+  }
 
+  public Mono<JwtDto> validateJwt(JwtDto jwtDto){
+    if(jwtSupport.checkIfNotExpired(jwtDto.expiration())){
+      return Mono.just(jwtDto);
+    }
+    return Mono.error(new IllegalArgumentException("Token Invalid"));
+  }
 
+  private Mono<Authentication> findUserById(String userId){
+    return userDetailsService
+        .findByUsername(userId)
+        .map(userDetails -> {
+          var authentication = new UsernamePasswordAuthenticationToken(
+              userDetails.getUsername(), userDetails.getPassword(), userDetails.getAuthorities()
+          );
+          SecurityContextHolder.getContext().setAuthentication(authentication);
+          return authentication;
+        });
+  }
+  
+}
+```
 
 
 
