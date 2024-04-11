@@ -91,13 +91,38 @@ e.g.
 
 이것을 서명이라고 이야기합니다.<br/>
 
-JWT 의 헤더는 아래와 같이 구성되는데 `"alg" : "HS256"` 이라는 것은 알고리즘으로 `HMAC SHA 256` 이라는 알고리즘을 사용하겠다는 것을 의미합니다.
-
 ```
-{
-    "alg": "HS256",
-    "typ": "JWT"
-}
+HMACSHA256(
+  base64UrlEncode(header) + "." +
+  base64UrlEncode(payload),
+  secret)
 ```
 
 <br/>
+
+
+
+## 최종 산출 결과
+
+최종적으로 만들어진 JWT 는 아래와 같은 모습을 가지게 됩니다.
+
+![](https://cdn.auth0.com/content/jwt/encoded-jwt3.png)
+
+> 이미지 출처 : https://jwt.io/introduction
+
+<br/>
+
+
+
+만약 최종적으로 만들어진 JWT를 분해해서 확인해보고 싶다면 아래와 같이 jwt.io.Debugger 를 활용하시면 웹 GUI 로도 확인이 가능합니다.
+
+![](https://cdn.auth0.com/website/jwt/introduction/debugger.png)
+
+> 이미지 출처 : https://jwt.io/introduction
+
+<br/>
+
+
+
+
+
