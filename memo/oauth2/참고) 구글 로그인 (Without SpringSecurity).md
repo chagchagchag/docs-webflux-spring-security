@@ -1,4 +1,4 @@
-## 참고) 구글 로그인 (Non-SpringSecurity)
+## 참고) 구글 로그인 (Without SpringSecurity)
 
 Spring 에서 제공하는 OAuth2 Client 기능을 그대로 사용하기에는 개인적으로는 Feign Client 등을 통해 커스터마이징을 해야 하는 부분들이 있어서 raw 레벨로 로그인하는 방식을 계속 찾아보고 적용한 과정입니다.<br/>
 
