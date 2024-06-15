@@ -8,6 +8,16 @@ Spring 에서 제공하는 OAuth2 Client 기능을 그대로 사용하기에는 
 
 
 
+### 0) redirect uri
+
+이번 예제에서 사용하는 redirect uri 는 [http://localhost:8080/welcome](http://localhost:8080/welcome) 입니다.<br/>
+
+이 redirect uri 는 [https://cloud.google.com](https://cloud.google.com) 내에서 콘솔 메뉴에서 입력한 주소입니다.<br/>
+
+구글 내에서 인증이 모두 완료되면, 구글은 access token 을 파라미터로 해서 우리가 입력한 redirect uri 로 시켜줍니다.<br/>
+
+
+
 ### 1) browser 에 아래 주소를 입력
 
 - [https://accounts.google.com/o/oauth2/auth?client_id={클라이언트ID}&redirect_uri=http://localhost:8080/welcome&response_type=token&scope=profile](https://accounts.google.com/o/oauth2/auth?client_id={클라이언트ID}&redirect_uri=http://localhost:8080/welcome&response_type=token&scope=profile)<br/>
