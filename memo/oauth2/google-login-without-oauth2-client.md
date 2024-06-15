@@ -1,6 +1,6 @@
 ## 구글 로그인 (without oauth2 client)
 
-Spring 에서 제공하는 OAuth2 Client 기능을 그대로 사용하기에는 개인적으로는 Feign Client 등을 통해 커스터마이징을 해야 하는 부분들이 있어서 raw 레벨로 로그인하는 방식을 계속 찾아보고 적용한 과정입니다.<br/>
+OAuth2 로그인 기능을 raw 레벨로 로그인하는 방식을 계속 찾아보고 그 결과 어떻게 OAuth2 요청을 수행해야 하는지를 요약해봤습니다.<br/>
 
 제 경우에는 browser 로 접근하는 방식을 어떻게 해결할지에 대해(React 등과 같은 Frontend 코드를 이용) 해결된다면 아마도 OAuth2 login 은 Spring OAuth2 Client 를 사용하지 않고 개인적으로 작성한 코드를 사용하면서 기존 Spring Security 를 그대로 사용하게 될 듯 합니다.<br/>
 
@@ -9,6 +9,14 @@ Spring 에서 제공하는 OAuth2 Client 기능을 그대로 사용하기에는 
 
 
 ### 참고자료
+
+- [Google Authorization - developers.google.com](https://developers.google.com/identity/protocols/oauth2?hl=ko)
+- [스프링부트로 Google 로그인 구현해보기 -2](https://darrenlog.tistory.com/40)
+- [구글 로그인 구현하기 3편 - 로그인 구현하기 (Spring Boot + Vue.js)](https://notspoon.tistory.com/47)
+
+<br/>
+
+
 
 개인적으로는 Spring OAuth2 Client 를 사용하다가 Feign Client 로 직접 요청하는 방식에 대해서 파악하면서 삽질을 조금 했는데 이 당시 로그인 URL 이 어떻게 되는지를 몰라서 많이 해멨고, 인터넷 자료도 다 제 각각이라서 오히려 시간이 배로 들었던 경험이었습니다. 인터넷 자료가 OAuth2 Client 를 쓰는 자료가 너무 많았고, 그래서 아예 쌩으로 FeignClient 만 사용하는 예제를 찾아봤었습니다.<br/>
 
