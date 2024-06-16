@@ -100,7 +100,19 @@ GET https://accounts.google.com/o/oauth2/auth?
 
 ### 2) browser redirect 된 주소
 
-로그인, 동의 화면 
+javascript 요청이 아닌 브라우저 요청일 때 1\) 과 같은 주소 아래의 /oauthchooseaccount 로 이동되며여기에 부가적으로 `service=lso`, `o2v=1`,`ddm=0`, `flowName=GeneralOAuthFlow` 파라미터가 추가되어서 GET 요청을 한번 더 합니다.<br/>
+
+
+
+![](./img/google-login-without-oauth2-client/oauthchooseaccount.png)
+
+
+
+<br/>
+
+
+
+로그인 동의 화면 
 
 - [https://accounts.google.com/o/oauth2/auth/oauthchooseaccount?client_id={clientId}&redirect_uri={base64 encoding 된 redirect uri}&response_type=token&scope=profile&service=lso&o2v=1&ddm=0&flowName=GeneralOAuthFlow](https://accounts.google.com/o/oauth2/auth/oauthchooseaccount?client_id={clientId}&redirect_uri={base64 encoding 된 redirect uri}&response_type=token&scope=profile&service=lso&o2v=1&ddm=0&flowName=GeneralOAuthFlow)
 
@@ -138,26 +150,36 @@ GET https://accounts.google.com/o/oauth2/auth/oauthchooseaccount?
 
 ### 3) (액세스 토큰) 내 서버의 특정 주소로 리다이렉트
 
-토큰을 얻어오는 과정입니다. 구글 계정은 access token 을 get parameter 에 실어서 아래와 같은 구글 콘솔에 입력한 주소로 리다이렉트 시켜줍니다.<br/>
+토큰을 얻어오는 과정입니다. 구글 계정은 code 를 get parameter 에 실어서 아래와 같은 구글 콘솔에 입력한 주소로 리다이렉트 시켜줍니다.<br/>
 
-- [http://localhost:8080/welcome#access_token={액세스 토큰}&token_type=Bearer&expires_in=3599&scope={스코프}](http://localhost:8080/welcome#access_token={액세스 토큰}&token_type=Bearer&expires_in=3599&scope={스코프})
+code 는 access token 을 받기 전의 중간 절차에 받는 일종의 인증 코드 같은 존재입니다.
+
+- [http://localhost:8080/welcome?code={code}&scope={scope}](http://localhost:8080/welcome?code={code}&scope={scope})
 
 <br/>
 
 
 
+![](./img/google-login-without-oauth2-client/code-page.png)
+
+위와 같이 브라우저 팝업 창 내에서는 내 서버 내의 특정 주소로 redirect 됩니다.<br/>
+
+
+
+
+
 ![](./img/google-login-without-oauth2-client/2.png)
 
-이번 과정은 위 그림에서 두번째 과정이며, 응답결과로 토큰을 획득하게 됩니다.<br/>
+이번 과정은 위 그림에서 두 번째 과정이며, 응답결과로 토큰을 획득하게 됩니다.<br/>
+
+<br/>
 
 
 
 ### 4) (사용자 조회) 사용자가 동의한 OAuth2 정보 조회
 
 - 헤더 : `Authorization : Bearer {액세스토큰}` 을 주어서 아래 주소로 GET 조회합니다.
-- GET [https://www.googleapis.com/oauth2/v2/userinfo](https://www.googleapis.com/oauth2/v2/userinfo)
-
-
+- POST [https://oauth2.googleapis.com/token](https://oauth2.googleapis.com/token) {code, client\_id, clientSecret, redirect\_uri, grant\_type}
 
 
 
