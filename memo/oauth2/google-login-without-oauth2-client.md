@@ -18,42 +18,6 @@ OAuth2 로그인 기능을 raw 레벨로 로그인하는 방식을 계속 찾아
 
 
 
-개인적으로는 Spring OAuth2 Client 를 사용하다가 Feign Client 로 직접 요청하는 방식에 대해서 파악하면서 삽질을 조금 했는데 이 당시 로그인 URL 이 어떻게 되는지를 몰라서 많이 해멨고, 인터넷 자료도 다 제 각각이라서 오히려 시간이 배로 들었던 경험이었습니다. 인터넷 자료가 OAuth2 Client 를 쓰는 자료가 너무 많았고, 그래서 아예 쌩으로 FeignClient 만 사용하는 예제를 찾아봤었습니다.<br/>
-
-그러다가 단순 코드만 보면 좀 파악이 안되어서 아래와 같은 http 요청을 보내봤고
-
-```http
-GET https://accounts.google.com/o/oauth2/auth?
-    client_id=clientId
-    &redirect_uri=http://localhost:8080/welcome
-    &response_type=token
-    &scope=profile
-```
-
-이게 http 파일에서는 안되길래 브라우저에서 입력해봤습니다.<br/>
-
-
-
-그랬더니 로그인, OAuth2 동의화면이 잘 떠서 이게 이런이야기구나... 처음에는 브라우저에서 시작해야하는구나 하는 생각을 했습니다.<br/>
-
-위 문제가 해결된 이후로는 운 좋게 아래의 자료를 접했고, 그 이후의 과정에 대해서 자세하게 설명해주셔서 개념파악을 하는 데에 많은 도움이 되었습니다.
-
-- https://darrenlog.tistory.com/40
-
-<br/>
-
-
-
-제 경우에는 아마도 React 페이지를 구성해서 axios 요청을 하는 코드는 아래의 자료를 참고하게 될 것 같네요
-
-- https://notspoon.tistory.com/47
-
-<br/>
-
-Vue 를 싫어하는 건 아니지만, 그나마 조금 알고 있는게 React 이기에 SPA 페이지를 만들때는 매번 React 를 선택하네요!!<br/>
-
-
-
 ### 전반적인 절차
 
 ![](./img/google-login-without-oauth2-client/authorization-code.png)
@@ -231,7 +195,45 @@ data class GoogleTokenResponse (
 
 
 
+<br/>
 
+
+
+### 개인적으로 엉뚱한 자료를 보다가 헤맨 경험
+
+개인적으로는 Spring OAuth2 Client 를 사용하다가 Feign Client 로 직접 요청하는 방식에 대해서 파악하면서 삽질을 조금 했는데 이 당시 로그인 URL 이 어떻게 되는지를 몰라서 많이 해멨고, 인터넷 자료도 다 제 각각이라서 오히려 시간이 배로 들었던 경험이었습니다. 인터넷 자료가 OAuth2 Client 를 쓰는 자료가 너무 많았고, 그래서 아예 쌩으로 FeignClient 만 사용하는 예제를 찾아봤었습니다.<br/>
+
+그러다가 단순 코드만 보면 좀 파악이 안되어서 아래와 같은 http 요청을 보내봤고
+
+```http
+GET https://accounts.google.com/o/oauth2/auth?
+    client_id=clientId
+    &redirect_uri=http://localhost:8080/welcome
+    &response_type=token
+    &scope=profile
+```
+
+이게 http 파일에서는 안되길래 브라우저에서 입력해봤습니다.<br/>
+
+
+
+그랬더니 로그인, OAuth2 동의화면이 잘 떠서 이게 이런이야기구나... 처음에는 브라우저에서 시작해야하는구나 하는 생각을 했습니다.<br/>
+
+위 문제가 해결된 이후로는 운 좋게 아래의 자료를 접했고, 그 이후의 과정에 대해서 자세하게 설명해주셔서 개념파악을 하는 데에 많은 도움이 되었습니다.
+
+- https://darrenlog.tistory.com/40
+
+<br/>
+
+
+
+제 경우에는 아마도 React 페이지를 구성해서 axios 요청을 하는 코드는 아래의 자료를 참고하게 될 것 같네요
+
+- https://notspoon.tistory.com/47
+
+<br/>
+
+Vue 를 싫어하는 건 아니지만, 그나마 조금 알고 있는게 React 이기에 SPA 페이지를 만들때는 매번 React 를 선택하네요!!<br/>
 
 
 
