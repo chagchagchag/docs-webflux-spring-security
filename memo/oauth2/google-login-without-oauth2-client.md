@@ -112,7 +112,7 @@ javascript 요청이 아닌 브라우저 요청일 때 1\) 과 같은 주소 아
 
 
 
-로그인 동의 화면 
+실제 팝업에 나타나는 주소의 전체 URL 은 아래와 같습니다.
 
 - [https://accounts.google.com/o/oauth2/auth/oauthchooseaccount?client_id={clientId}&redirect_uri={base64 encoding 된 redirect uri}&response_type=token&scope=profile&service=lso&o2v=1&ddm=0&flowName=GeneralOAuthFlow](https://accounts.google.com/o/oauth2/auth/oauthchooseaccount?client_id={clientId}&redirect_uri={base64 encoding 된 redirect uri}&response_type=token&scope=profile&service=lso&o2v=1&ddm=0&flowName=GeneralOAuthFlow)
 
@@ -120,10 +120,8 @@ javascript 요청이 아닌 브라우저 요청일 때 1\) 과 같은 주소 아
 
 
 
-보기 좋게 정리해보면 아래와 같습니다. (브라우저에서만 동작해요)
-
 ```http
-GET https://accounts.google.com/o/oauth2/auth/oauthchooseaccount?
+https://accounts.google.com/o/oauth2/auth/oauthchooseaccount?
 	client_id={clientId}
 	&redirect_uri={base64 encoding 된 redirect uri}
 	&response_type=token
@@ -148,13 +146,14 @@ GET https://accounts.google.com/o/oauth2/auth/oauthchooseaccount?
 
 
 
-### 3) (액세스 토큰) 내 서버의 특정 주소로 리다이렉트
+### 3) (인증 코드 발급) 내 서버의 특정 주소로 리다이렉트
 
 토큰을 얻어오는 과정입니다. 구글 계정은 code 를 get parameter 에 실어서 아래와 같은 구글 콘솔에 입력한 주소로 리다이렉트 시켜줍니다.<br/>
 
 code 는 access token 을 받기 전의 중간 절차에 받는 일종의 인증 코드 같은 존재입니다.
 
 - [http://localhost:8080/welcome?code={code}&scope={scope}](http://localhost:8080/welcome?code={code}&scope={scope})
+- [http://localhost:8080/welcome](http://localhost:8080/welcome) 은 cloud.google.com 내의 개발자 콘솔에서 직접 입력한 리다이렉트 주소입니다.
 
 <br/>
 
@@ -170,43 +169,69 @@ code 는 access token 을 받기 전의 중간 절차에 받는 일종의 인증
 
 ![](./img/google-login-without-oauth2-client/2.png)
 
-이번 과정은 위 그림에서 두 번째 과정이며, 응답결과로 토큰을 획득하게 됩니다.<br/>
+이번 과정은 위 그림에서 두 번째 과정이며, 응답결과로 토큰을 획득하기 위한 중간 인증결과인 `code` 를 획득하게 됩니다.<br/>
+
+
+
+### 4\) code 를 기반으로 token 요청
+
+- 아래와 같은 로그인을 통해 발급받은 code 를 이용해서 POST 요청을 하며 그 결과로 Access Token 을 발급받습니다.
+- POST [https://oauth2.googleapis.com/token](https://oauth2.googleapis.com/token) {code, client\_id, clientSecret, redirect\_uri, grant\_type}
+
+
 
 <br/>
-
-
-
-### 4) (사용자 조회) 사용자가 동의한 OAuth2 정보 조회
-
-- 헤더 : `Authorization : Bearer {액세스토큰}` 을 주어서 아래 주소로 GET 조회합니다.
-- POST [https://oauth2.googleapis.com/token](https://oauth2.googleapis.com/token) {code, client\_id, clientSecret, redirect\_uri, grant\_type}
 
 
 
 ![](./img/google-login-without-oauth2-client/3.png)
 
-이번 과정은 사용자가 OAuth2 동의 화면에서 정보제공에 동의한 정보를 토큰을 이용해서 조회해오는 세번째 과정입니다.<br/>
+<br/>
+
+이번 과정은 위의 그림에서 노란색 테두리로 표시한 부분입니다.<br/>
+
+<br/>
 
 
 
-#### 참고
+응답형식의 구조는 아래와 같습니다.
 
-응답 바디를 구성하기 쉽지 않은데 초반에는 Map 을 사용하거나, JsonNode 를 사용해서 응답바디가 어떻게 되는지 파악하면 될 것 같습니다.<br/>
+```kotlin
+package io.chagchagchag.youtube.playlist_helper.api_client.domain.auth.dto
 
-참고 : https://darrenlog.tistory.com/40
-
-```java
-private JsonNode getUserResource(String accessToken, String registrationId) {
-    String resourceUri = env.getProperty("oauth2."+registrationId+".resource-uri");
-
-    HttpHeaders headers = new HttpHeaders();
-    headers.set("Authorization", "Bearer " + accessToken);
-    HttpEntity entity = new HttpEntity(headers);
-    return restTemplate.exchange(resourceUri, HttpMethod.GET, entity, JsonNode.class).getBody();
+data class GoogleTokenResponse (
+    val access_token: String,
+    val expires_in: String,
+    val scope: String,
+    val token_type: String,
+    val id_token: String,
+){
 }
 ```
 
 <br/>
+
+
+
+처음 개발 시에는 응답값이 어떻게 오는지 추측하기 쉽지 않습니다. 처음 개발시에는 Map\<String, Any\> 같은 타입으로 받아서 어떤 응답값이 오는지 확인하면 개발 시에 조금은 유용해집니다.
+
+![](./img/google-login-without-oauth2-client/map-response.png)
+
+<br/>
+
+
+
+### 5) 토큰을 이용해서 필요한 정보 조회
+
+- 헤더 : `Authorization : Bearer {액세스토큰}` 을 주어서 조회하는 과정입니다.
+
+
+
+![](./img/google-login-without-oauth2-client/4.png)
+
+
+
+
 
 
 
